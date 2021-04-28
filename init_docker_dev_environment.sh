@@ -173,7 +173,7 @@ docker cp $PATH_TO_EOPCFI $APP_CONTAINER:/
 
 echo "Compiling EOPCFI..."
 
-docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "gcc -Wno-deprecated -g -fpic -c -DSQLCA_STORAGE_CLASS=static -I /eopcfi/include/ /$COMMON_BASE_FOLDER/src/sboa/eop_cfi/get_footprint.c -o /tmp/get_footprint.o"
+docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "gcc -Wno-deprecated -g -fpic -c -DSQLCA_STORAGE_CLASS=static -I /eopcfi/include/ /$COMMON_BASE_FOLDER/src/siboa/eop_cfi/get_footprint.c -o /tmp/get_footprint.o"
 
 echo "Objetcs for the EOPCFI interface generated..."
 
