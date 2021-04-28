@@ -1,10 +1,10 @@
 #################################################################
 #
-# Generate BOA image
+# Generate SBOA image
 #
 # Written by DEIMOS Space S.L. (dibb)
 #
-# module boa
+# module sboa
 #################################################################
 
 USAGE="Usage: `basename $0` -e path_to_eboa_src -v path_to_vboa_src -d path_to_dockerfile -p path_to_dockerfile_pkg -o path_to_orc_packets -f path_to_eopcfi -u uid_host_user_to_map -t path_to_tailored -b path_to_common_base [-a app] [-c boa_tailoring_configuration_path] [-l version]"
@@ -30,7 +30,7 @@ do
         e) PATH_TO_EBOA=${OPTARG}; PATH_TO_EBOA_CALL="-e ${OPTARG}";;
         v) PATH_TO_VBOA=${OPTARG}; PATH_TO_VBOA_CALL="-v ${OPTARG}";;
         t) PATH_TO_TAILORED=${OPTARG}; PATH_TO_TAILORED_CALL="-t ${OPTARG}";;
-        b) PATH_TO_COMMON_BASE=${OPTARG};COMMON_BASE_FOLDER=`basename $PATH_TO_COMMON_BASE`;;
+        b) PATH_TO_COMMON_BASE=${OPTARG}; COMMON_BASE_FOLDER=`basename $PATH_TO_COMMON_BASE`; PATH_TO_COMMON_BASE_CALL="-b ${OPTARG}";;
         d) PATH_TO_DOCKERFILE=${OPTARG}; PATH_TO_DOCKERFILE_CALL="-d ${OPTARG}";;
         p) PATH_TO_DOCKERFILE_PKG=${OPTARG}; PATH_TO_DOCKERFILE_PKG_CALL="-p ${OPTARG}";;
         a) APP=${OPTARG}; APP_CALL="-a ${OPTARG}";;
@@ -44,8 +44,37 @@ do
     esac
 done
 
+# Check that option -t has been specified
+if [ "$PATH_TO_TAILORED" == "" ];
+then
+    echo "ERROR: The option -t has to be provided"
+    echo $USAGE
+    exit -1
+fi
 
-# Check that option -o has been specified
+# Check that the path to the tailored exists
+if [ ! -d $PATH_TO_TAILORED ];
+then
+    echo "ERROR: The directory $PATH_TO_TAILORED provided does not exist"
+    exit -1
+fi
+
+# Check that option -b has been specified
+if [ "$PATH_TO_COMMON_BASE" == "" ];
+then
+    echo "ERROR: The option -b has to be provided"
+    echo $USAGE
+    exit -1
+fi
+
+# Check that the path to the common base exists
+if [ ! -d $PATH_TO_COMMON_BASE ];
+then
+    echo "ERROR: The directory $PATH_TO_COMMON_BASE provided does not exist"
+    exit -1
+fi
+
+# Check that option -f has been specified
 if [ "$PATH_TO_EOPCFI" == "" ];
 then
     echo "ERROR: The option -f has to be provided"
@@ -82,10 +111,39 @@ do
     fi
 done
 
-APP_CONTAINER="boa_app"
+APP_CONTAINER="boa_app_$APP"
+
+while true; do
+read -p "
+Welcome to the docker image generator of the $APP environment :-)
+
+You are going to generate the docker image for the app: $APP...
+These are the specific configuration options that will be applied to initialize the environment:
+- PATH_TO_EOPCFI: $PATH_TO_EOPCFI
+
+Do you wish to proceed with the generation of the docker image?" answer
+    case $answer in
+        [Yy]* )
+            break;;
+        [Nn]* )
+            echo "No worries, the docker image will not be generated";
+            exit;;
+        * ) echo "Please answer Y or y for yes or N or n for no. Answered: $answer";;
+    esac
+done
 
 # Generate docker image
-$PATH_TO_VBOA/generate_docker_image.sh $PATH_TO_EBOA_CALL $PATH_TO_VBOA_CALL $PATH_TO_TAILORED_CALL $PATH_TO_DOCKERFILE_CALL $PATH_TO_DOCKERFILE_PKG_CALL $APP_CALL $PATH_TO_ORC_CALL $PATH_TO_BOA_TAILORING_CONFIGURATION_CALL $UID_HOST_USER_TO_MAP_CALL $VERSION_CALL
+$PATH_TO_VBOA/generate_docker_image.sh $PATH_TO_EBOA_CALL $PATH_TO_VBOA_CALL $PATH_TO_TAILORED_CALL $PATH_TO_COMMON_BASE_CALL $PATH_TO_DOCKERFILE_CALL $PATH_TO_DOCKERFILE_PKG_CALL $APP_CALL $PATH_TO_ORC_CALL $PATH_TO_BOA_TAILORING_CONFIGURATION_CALL $UID_HOST_USER_TO_MAP_CALL $VERSION_CALL
+
+# Check that the BOA image could be generated
+status=$?
+if [ $status -ne 0 ]
+then
+    echo "The BOA image could not be generated :-("
+    exit -1
+else
+    echo "The BOA image has been generated successfully :-)"
+fi
 
 # Include the EOP CFI
 # Compile source
@@ -94,11 +152,11 @@ docker exec -it -u root $APP_CONTAINER bash -c "chown boa:boa /eopcfi"
 
 echo "Compiling EOPCFI..."
 
-docker exec -it -u boa $APP_CONTAINER bash -c "gcc -Wno-deprecated -g -fpic -c -DSQLCA_STORAGE_CLASS=static -I /eopcfi/include/ /$COMMON_BASE_FOLDER/src/s2boa/eop_cfi/get_footprint.c -o /tmp/get_footprint.o"
+docker exec -it -u boa $APP_CONTAINER bash -c "gcc -Wno-deprecated -g -fpic -c -DSQLCA_STORAGE_CLASS=static -I /eopcfi/include/ /$COMMON_BASE_FOLDER/src/siboa/eop_cfi/get_footprint.c -o /tmp/get_footprint.o"
 
 echo "Objetcs for the EOPCFI interface generated..."
 
-docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "gcc /tmp/get_footprint.o -Wno-deprecated -g -I /eopcfi/include/ -L /eopcfi/lib/ -lexplorer_visibility -lexplorer_pointing -lexplorer_orbit -lexplorer_lib -lexplorer_data_handling -lexplorer_file_handling -lgeotiff -ltiff -lproj -lxml2 -lm -lc -fopenmp -o /scripts/get_footprint; rm /tmp/get_footprint.o"
+docker exec -it -u boa $APP_CONTAINER bash -c "gcc /tmp/get_footprint.o -Wno-deprecated -g -I /eopcfi/include/ -L /eopcfi/lib/ -lexplorer_visibility -lexplorer_pointing -lexplorer_orbit -lexplorer_lib -lexplorer_data_handling -lexplorer_file_handling -lgeotiff -ltiff -lproj -lxml2 -lm -lc -fopenmp -o /scripts/get_footprint; rm /tmp/get_footprint.o"
 
 # Check that the CFI could be compiled
 status=$?
