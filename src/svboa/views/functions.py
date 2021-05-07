@@ -3,7 +3,7 @@ Views functions definition
 
 Written by DEIMOS Space S.L. (dibb)
 
-module s2vboa
+module svboa
 """
 # Import python utilities
 import sys
