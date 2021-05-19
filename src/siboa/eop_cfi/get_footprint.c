@@ -219,6 +219,7 @@ int call_eop_cfi(double *in_times, long in_n_times, char **in_orbit_files,  char
     char msg[XO_MAX_COD][XO_MAX_STR];     /* Error messages vector */
 
     /* common variables */
+    /* sat_id fixed to XO_SAT_SENTINEL_2A as it does not change nothing to get the footprint for other satellites */
     long sat_id 		= XO_SAT_SENTINEL_2A;
     long sat_id_geo 	= XO_SAT_GENERIC_GEO;
     long propag_model 	= XO_PROPAG_MODEL_MEAN_KEPL;
