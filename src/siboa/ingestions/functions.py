@@ -180,3 +180,119 @@ def correct_longitude_in_allowed_range(coordinates):
     corrected_coordinates = " ".join(list_coordinates_to_correct)
 
     return corrected_coordinates
+
+def obtain_polygon_format(footprint):
+    list_coordinates = footprint.split(" ")
+    polygon_footprint = "POLYGON(("
+    coordinates = 0
+    for coordinate in list_coordinates:
+        if coordinates == 2:
+            polygon_footprint = polygon_footprint + ","
+            coordinates = 0
+        # end if
+        polygon_footprint = polygon_footprint + coordinate
+        coordinates += 1
+        if coordinates == 1:
+            polygon_footprint = polygon_footprint + " "
+        # end if
+    # end for
+    polygon_footprint = polygon_footprint + "))"
+
+    return polygon_footprint
+
+def correct_footprint(coordinates):
+
+    longitude_latitudes = coordinates.split(" ")
+
+    intersections_with_antimeridian=0
+    init_longitudes_after_intersect_antimeridian=[]
+    polygon = []
+    polygons = [polygon]
+    polygon_index = 0
+    reverse = False
+    for i, longitude_latitude  in enumerate(longitude_latitudes):
+        if i == 0:
+            j = len(longitude_latitudes) - 1
+        else:
+            j = i - 1
+        # end if
+        
+        longitude, latitude = longitude_latitude.split(',')
+        pre_longitude, pre_latitude = longitude_latitudes[j].split(',')
+
+        longitude = float(longitude)
+        latitude = float(latitude)
+
+        pre_longitude = float(pre_longitude)
+        pre_latitude = float(pre_latitude)
+        # Check if the polygon crosses the antimeridian
+        if (pre_longitude * longitude) <0 and (abs(longitude) + abs(pre_longitude)) > 270:
+            if pre_longitude > 0:
+                # Move the longitude coordinates to be around G meridian to calculate intersection 
+                pre_longitude_g_meridian = pre_longitude - 180
+                longitude_g_meridian = 180 + longitude
+                latitude_med =  pre_latitude - pre_longitude_g_meridian * ((latitude - pre_latitude ) / (longitude_g_meridian - pre_longitude_g_meridian))
+            else:
+                pre_longitude_g_meridian = 180 + pre_longitude
+                longitude_g_meridian = longitude - 180
+                latitude_med =  pre_latitude - pre_longitude_g_meridian * ((latitude - pre_latitude ) / (longitude_g_meridian - pre_longitude_g_meridian))
+            # end if
+            
+            new_longitude = 180.0
+            if longitude > 0:
+                new_longitude = -180.0
+            # end if
+            polygon.append((new_longitude, latitude_med))
+                
+            if len(init_longitudes_after_intersect_antimeridian) > 0 and new_longitude == init_longitudes_after_intersect_antimeridian[intersections_with_antimeridian-1]:
+                reverse = True
+            elif reverse and polygon_index == 0:
+                reverse = False
+                polygon_index = len(polygons) - 1
+            # end if
+            
+            if reverse:
+                polygon_index = polygon_index - 1
+            else:
+                polygon_index = polygon_index + 1
+            # end if
+            
+            if reverse:
+                polygon = polygons[polygon_index]
+            else:
+                polygon = []
+                polygons.append(polygon)
+            # end if
+            polygon.append((-1 * new_longitude, latitude_med))
+            init_longitudes_after_intersect_antimeridian.append(-1 * new_longitude)
+            intersections_with_antimeridian = intersections_with_antimeridian + 1
+        # end if            
+
+        # Insert the current coordinate
+        polygon.append((longitude, latitude))
+    # end for
+
+    # Postgis (for at least version 2.5.1) accepts a minimum number of 8 coordinates for a polygon. So, when the number of coordinates is 4 they are just duplicated
+    for polygon in polygons:
+        if len(polygon) == 2:
+            polygon.append(polygon[1])
+            polygon.append(polygon[0])
+        else:
+            polygon.append(polygon[0])
+        # end if    
+    # end for
+    
+    footprints = []
+    for polygon in polygons:
+        footprint = ""
+        for i, coordinate in enumerate(polygon):
+            if i == len(polygon) - 1:
+                footprint = footprint + str(coordinate[0]) + " " + str(coordinate[1])
+            else:
+                footprint = footprint + str(coordinate[0]) + " " + str(coordinate[1]) + " "
+            # end if
+        # end for
+        footprints.append(footprint)
+    # end for
+
+    return footprints
