@@ -101,6 +101,7 @@ then
     exit -1
 fi
 
+# Check libraries
 for library in "libexplorer_data_handling.a" "libexplorer_file_handling.a" "libexplorer_lib.a" "libexplorer_orbit.a" "libexplorer_pointing.a" "libexplorer_visibility.a" "libgeotiff.a" "libproj.a" "libtiff.a" "libxml2.a";
 do
     # Check that the library is present
@@ -112,6 +113,7 @@ do
     fi
 done
 
+# Check header files
 for header in "explorer_data_handling.h" "explorer_file_handling.h" "explorer_lib.h" "explorer_orbit.h" "explorer_pointing.h" "explorer_visibility.h";
 do
     # Check that the header is present
@@ -119,6 +121,18 @@ do
     if [ $header_count == 0 ];
     then
         echo "ERROR: The header $PATH_TO_EOPCFI/include/$header does not exist in the provided eopcfi directory"
+        exit -1
+    fi
+done
+
+# Check binary files
+for binary in "gen_pof";
+do
+    # Check that the binary is present
+    binary_count=$(find $PATH_TO_EOPCFI/bin -maxdepth 1 -mindepth 1 -name $binary | wc -l)
+    if [ $binary_count == 0 ];
+    then
+        echo "ERROR: The binary $PATH_TO_EOPCFI/bin/$binary does not exist in the provided eopcfi directory"
         exit -1
     fi
 done
@@ -178,6 +192,8 @@ docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "gcc -Wno-deprecated
 echo "Objetcs for the EOPCFI interface generated..."
 
 docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "gcc /tmp/get_footprint.o -Wno-deprecated -g -I /eopcfi/include/ -L /eopcfi/lib/ -lexplorer_visibility -lexplorer_pointing -lexplorer_orbit -lexplorer_lib -lexplorer_data_handling -lexplorer_file_handling -lgeotiff -ltiff -lproj -lxml2 -lm -lc -fopenmp -o /scripts/get_footprint; rm /tmp/get_footprint.o"
+
+docker exec -it -u $HOST_USER_TO_MAP $APP_CONTAINER bash -c "cp /eopcfi/bin/* /scripts"
 
 # Check that the CFI could be compiled
 status=$?

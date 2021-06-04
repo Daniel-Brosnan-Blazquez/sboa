@@ -89,6 +89,7 @@ then
     exit -1
 fi
 
+# Check libraries
 for library in "libexplorer_data_handling.a" "libexplorer_file_handling.a" "libexplorer_lib.a" "libexplorer_orbit.a" "libexplorer_pointing.a" "libexplorer_visibility.a" "libgeotiff.a" "libproj.a" "libtiff.a" "libxml2.a";
 do
     # Check that the library is present
@@ -100,6 +101,7 @@ do
     fi
 done
 
+# Check header files
 for header in "explorer_data_handling.h" "explorer_file_handling.h" "explorer_lib.h" "explorer_orbit.h" "explorer_pointing.h" "explorer_visibility.h";
 do
     # Check that the header is present
@@ -107,6 +109,18 @@ do
     if [ $header_count == 0 ];
     then
         echo "ERROR: The header $PATH_TO_EOPCFI/include/$header does not exist in the provided eopcfi directory"
+        exit -1
+    fi
+done
+
+# Check binary files
+for binary in "gen_pof";
+do
+    # Check that the binary is present
+    binary_count=$(find $PATH_TO_EOPCFI/bin -maxdepth 1 -mindepth 1 -name $binary | wc -l)
+    if [ $binary_count == 0 ];
+    then
+        echo "ERROR: The binary $PATH_TO_EOPCFI/bin/$binary does not exist in the provided eopcfi directory"
         exit -1
     fi
 done
@@ -166,6 +180,18 @@ then
     exit -1
 else
     echo "The EOP CFI has been compiled successfully :-)"
+fi
+
+docker exec -it -u boa $APP_CONTAINER bash -c "cp /eopcfi/bin/* /scripts"
+
+# Check that the binaries could be copied
+status=$?
+if [ $status -ne 0 ]
+then
+    echo "The EOP CFI binaries could not be copied :-("
+    exit -1
+else
+    echo "The EOP CFI binaries has been copied successfully :-)"
 fi
 
 TMP_DIR=`mktemp -d`
