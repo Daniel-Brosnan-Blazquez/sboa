@@ -7,7 +7,7 @@
 # module sboa
 #################################################################
 
-USAGE="Usage: `basename $0` -e path_to_eboa_src -v path_to_vboa_src -d path_to_dockerfile -o path_to_orc_packets -u host_user_to_map -t path_to_tailored -b path_to_common_base -f path_to_eopcfi [-p port] [-l containers_label] [-a app] [-c boa_tailoring_configuration_path] [-s path_to_boa_certificates] [-n] [-r]\n
+USAGE="Usage: `basename $0` -e path_to_eboa_src -v path_to_vboa_src -d path_to_dockerfile -o path_to_orc_packets -u host_user_to_map -t path_to_tailored -b path_to_common_base -f path_to_eopcfi [-p port] [-l containers_label] [-a app] [-s path_to_boa_certificates] [-n] [-r]\n
 Where:\n
 -s path_to_boa_certificates: Path to SSL certificates which names should be boa_certificate.pem and boa_key.pem\n
 -n: disable DDBB port exposure (5432). Exposure of this port is needed for obtaining differences between data models
@@ -32,7 +32,7 @@ EXPOSE_DDBB_PORT="TRUE"
 PATH_TO_BOA_CERTIFICATES=""
 REMOVE_AVAILABLE_BOA_IMAGES="TRUE"
 
-while getopts e:v:d:o:u:p:t:b:l:a:c:s:nrf: option
+while getopts e:v:d:o:u:p:t:b:l:a:s:nrf: option
 do
     case "${option}"
         in
@@ -46,7 +46,6 @@ do
         b) PATH_TO_COMMON_BASE=${OPTARG}; COMMON_BASE_FOLDER=`basename $PATH_TO_COMMON_BASE`; PATH_TO_COMMON_BASE_CALL="-b ${OPTARG}";;
         l) CONTAINERS_LABEL=${OPTARG}; CONTAINERS_LABEL_CALL="-l ${OPTARG}";;
         a) APP=${OPTARG}; APP_CALL="-a ${OPTARG}";;
-        c) PATH_TO_BOA_TAILORING_CONFIGURATION=${OPTARG}; PATH_TO_BOA_TAILORING_CONFIGURATION_CALL="-c ${OPTARG}";;
         s) PATH_TO_BOA_CERTIFICATES=${OPTARG}; PATH_TO_BOA_CERTIFICATES_CALL="-s ${OPTARG}";;
         n) EXPOSE_DDBB_PORT="FALSE"; EXPOSE_DDBB_PORT_CALL="-n ${OPTARG}";;
         r) REMOVE_AVAILABLE_BOA_IMAGES="FALSE"; REMOVE_AVAILABLE_BOA_IMAGES_CALL="-r ${OPTARG}";;
@@ -167,7 +166,7 @@ done
 
 # Initialize development environment
 # Generate docker image
-$PATH_TO_VBOA/init_docker_dev_environment.sh $PATH_TO_EBOA_CALL $PATH_TO_VBOA_CALL $PATH_TO_DOCKERFILE_CALL $PATH_TO_ORC_CALL $HOST_USER_TO_MAP_CALL $PORT_CALL $PATH_TO_TAILORED_CALL $PATH_TO_COMMON_BASE_CALL $CONTAINERS_LABEL_CALL $APP_CALL $PATH_TO_BOA_TAILORING_CONFIGURATION_CALL $PATH_TO_BOA_CERTIFICATES_CALL $EXPOSE_DDBB_PORT_CALL $REMOVE_AVAILABLE_BOA_IMAGES_CALL
+$PATH_TO_VBOA/init_docker_dev_environment.sh $PATH_TO_EBOA_CALL $PATH_TO_VBOA_CALL $PATH_TO_DOCKERFILE_CALL $PATH_TO_ORC_CALL $HOST_USER_TO_MAP_CALL $PORT_CALL $PATH_TO_TAILORED_CALL $PATH_TO_COMMON_BASE_CALL $CONTAINERS_LABEL_CALL $APP_CALL $PATH_TO_BOA_CERTIFICATES_CALL $EXPOSE_DDBB_PORT_CALL $REMOVE_AVAILABLE_BOA_IMAGES_CALL
 
 # Check that the BOA development environment could be generated
 status=$?
