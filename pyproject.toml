@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sboa"
+version = "0.1.0"
+description = "Scheduling management for Business Operation Analysis"
+readme = "README.md"
+requires-python = ">=3.9,<3.12"
+license = "MIT"
+license-files = ["LICENSE", "AUTHORS"]
+authors = [{name = "Daniel Brosnan", email = "d.brosnan.b@gmail.com"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Database",
+]
+dependencies = [
+    "sqlalchemy==1.3.22",
+    "psycopg2-binary==2.9.11",
+    "python-dateutil==2.9.0.post0",
+    "lxml==6.0.2",
+    "psutil==7.2.2",
+    "lockfile==0.12.2",
+    "python-daemon==3.1.2",
+]
+
+[project.optional-dependencies]
+tests = ["pytest>=7,<9", "before_after==1.0.1", "pytest-cov==7.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/danielbrosnan/sboa"
+Repository = "https://github.com/danielbrosnan/sboa"
+Issues = "https://github.com/danielbrosnan/sboa/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+script-files = [
+    "src/sboa/scripts/sboa_init.py",
+    "src/sboa/scripts/sboa_init_ddbb.sh",
+    "src/sboa/scripts/initialize_sboa_ddbb.sh",
+    "src/sboa/scripts/start_sboa.sh",
+    "src/sboa/scheduler/boa_scheduler.py",
+    "src/sboa/scheduler/boa_execute_triggering.py",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sboa", "sboa.*"]
+exclude = ["*.tests", "*.tests.*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+sboa = ["config/*.json", "config/*.xml", "schemas/*.xsd"]
+"sboa.datamodel" = ["*.sql", "*.dbm"]
+"sboa.scripts" = ["*.sh"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+markers = ["integration: requires a dedicated PostgreSQL database and scheduler subprocesses"]
+
+[tool.coverage.run]
+source = ["sboa"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.html]
+directory = "src/tests/tmp/code_coverage_analysis"

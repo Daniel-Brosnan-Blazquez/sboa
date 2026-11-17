@@ -1,0 +1,41 @@
+services:
+  sboa_db:
+    image: postgis/postgis:16-3.5
+    container_name: sboa_db
+    # Dedicated development database; application roles connect without passwords.
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    shm_size: 512M
+    command: -c max_connections=100 -c max_locks_per_transaction=128
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks:
+      - boa_network
+
+  sboa:
+    build:
+      context: .
+      dockerfile: Dockerfile.github.dev
+      args:
+        UID_HOST_USER: ${UID_HOST_USER:-1000}
+        GID_HOST_USER: ${GID_HOST_USER:-1000}
+        REPOSITORY_URI: ${REPOSITORY_URI:?Set REPOSITORY_URI to the SBOA repository URL}
+        GITHUB_BRANCH: ${GITHUB_BRANCH:?Set GITHUB_BRANCH to the SBOA branch}
+    container_name: sboa
+    depends_on:
+      sboa_db:
+        condition: service_healthy
+    hostname: sboa
+    environment:
+      SBOA_DDBB_HOST: sboa_db
+      SBOA_RESOURCES_PATH: /resources_path
+    shm_size: 512M
+    networks:
+      - boa_network
+
+networks:
+  boa_network:
+    name: boa_network

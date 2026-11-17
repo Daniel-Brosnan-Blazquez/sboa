@@ -1,0 +1,32 @@
+name: SBOA testing
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  tests:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start GitHub development environment
+        env:
+          REPOSITORY_URI: ${{ github.event.pull_request.head.repo.clone_url || format('{0}/{1}', github.server_url, github.repository) }}
+          GITHUB_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: docker compose -f compose_github_dev.yml up --build -d --wait
+      - name: Run database tests
+        env:
+          REPOSITORY_URI: ${{ github.event.pull_request.head.repo.clone_url || format('{0}/{1}', github.server_url, github.repository) }}
+          GITHUB_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: docker compose -f compose_github_dev.yml exec -T sboa bash -ec 'initialize_sboa_ddbb.sh; cd /sboa; python -m pytest -v src/tests --cov=sboa --cov-report=term-missing --cov-report=html'
+      - name: Show container logs
+        if: failure()
+        env:
+          REPOSITORY_URI: ${{ github.event.pull_request.head.repo.clone_url || format('{0}/{1}', github.server_url, github.repository) }}
+          GITHUB_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: docker compose -f compose_github_dev.yml logs
+      - name: Stop development environment
+        if: always()
+        env:
+          REPOSITORY_URI: ${{ github.event.pull_request.head.repo.clone_url || format('{0}/{1}', github.server_url, github.repository) }}
+          GITHUB_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: docker compose -f compose_github_dev.yml down -v

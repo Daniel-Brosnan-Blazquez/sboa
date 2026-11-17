@@ -1,0 +1,8 @@
+include README.md LICENSE AUTHORS
+include doc/publishing.md tools/check_distribution.py tools/check_installed_resources.py
+recursive-include src/sboa/config *.json *.xml
+recursive-include src/sboa/schemas *.xsd
+recursive-include src/sboa/datamodel *.sql *.dbm
+recursive-include src/sboa/scripts *.sh
+prune src/tests
+global-exclude __pycache__ *.py[cod] .*.swp
