@@ -1,0 +1,35 @@
+# Base the image on Rocky Linux (Red Hat compatible)
+FROM rockylinux:9
+
+ARG UID_HOST_USER=1000
+ARG GID_HOST_USER=1000
+
+RUN groupadd -o -g ${GID_HOST_USER} boa \
+    && useradd -m -o -u ${UID_HOST_USER} -g boa boa
+RUN yum install -y epel-release \
+    && yum install --allowerasing -y glibc-langpack-en less make \
+       postgresql postgresql-devel procps python3 python3-devel python3-pip \
+       redhat-rpm-config which \
+    && yum clean all
+
+RUN python3 -m venv /usr/local/sboa-venv
+ENV PATH="/usr/local/sboa-venv/bin:${PATH}"
+RUN python -m pip install --upgrade pip setuptools wheel
+
+COPY . /sboa
+RUN python -m pip install --editable "/sboa[tests]"
+RUN mkdir -p /log /resources_path/on_going_triggerings /schemas /datamodel \
+    && ln -s /sboa/src/sboa/config/* /resources_path/ \
+    && ln -s /sboa/src/sboa/datamodel/sboa_data_model.sql /datamodel/ \
+    && chown -R boa:boa /log /resources_path /schemas /datamodel /sboa
+
+ENV SBOA_RESOURCES_PATH=/resources_path \
+    SBOA_SCHEMAS_PATH=/sboa/src/sboa/schemas \
+    SBOA_LOG_PATH=/log \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LC_ALL=en_US.utf-8 \
+    LANG=en_US.utf-8
+
+WORKDIR /sboa
+USER boa
+CMD ["/bin/bash", "/sboa/src/sboa/scripts/start_sboa.sh"]

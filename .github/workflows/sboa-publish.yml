@@ -1,0 +1,72 @@
+name: SBOA packaging and publishing
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build and verify (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install packaging tools
+        run: python -m pip install --upgrade build twine
+      - name: Test distribution validation
+        run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Build source distribution and wheel
+        run: python -m build
+      - name: Check metadata, contents, and release version
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+        run: |
+          python -m twine check --strict dist/*
+          python tools/check_distribution.py dist --tag "$RELEASE_TAG"
+      - name: Verify installed wheel and source distribution
+        run: |
+          for artifact in dist/*.whl dist/*.tar.gz; do
+            python -m venv /tmp/sboa-installed
+            /tmp/sboa-installed/bin/python -m pip install "$artifact"
+            /tmp/sboa-installed/bin/python -m pip check
+            (cd /tmp; PATH="/tmp/sboa-installed/bin:$PATH" /tmp/sboa-installed/bin/python "$GITHUB_WORKSPACE/tools/check_installed_resources.py")
+            rm -rf /tmp/sboa-installed
+          done
+      - name: Run database-free tests and report coverage
+        env:
+          SBOA_LOG_PATH: ${{ runner.temp }}/sboa-log
+          SBOA_RESOURCES_PATH: ${{ github.workspace }}/src/sboa/config
+        run: |
+          mkdir -p "$SBOA_LOG_PATH"
+          python -m pip install '.[tests]'
+          python -m pytest -q -m 'not integration' --cov=sboa --cov-report=term-missing --cov-report=html
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.11'
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    name: Publish to PyPI
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/sboa/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/
+      - name: Publish using PyPI Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
