@@ -45,6 +45,13 @@ COMMANDS = (
     "boa_scheduler.py",
     "boa_execute_triggering.py",
 )
+FIGURES = (
+    "doc/fig/sboadb.png",
+    "doc/fig/sboa_operations_overview_flow.svg",
+    "doc/fig/sboa_configuration_activation_flow.svg",
+    "doc/fig/sboa_scheduler_dispatch_flow.svg",
+    "doc/fig/sboa_triggering_execution_flow.svg",
+)
 
 
 def require(condition, message):
@@ -58,6 +65,8 @@ def check_metadata(data, tag):
     require(metadata["License-Expression"] == "MIT", "Missing MIT license metadata")
     require(set((metadata["Requires-Python"] or "").split(",")) == {">=3.9", "<3.12"}, "Unexpected Python compatibility")
     require(metadata["Description-Content-Type"] == "text/markdown", "Missing Markdown description")
+    for image_url in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", metadata.get_payload()):
+        require(image_url.startswith("https://"), "README images must use absolute HTTPS URLs: " + image_url)
     require(metadata.get_all("Requires-Dist"), "Missing runtime dependencies")
     for dependency in metadata.get_all("Requires-Dist", []):
         name = re.match(r"[A-Za-z0-9_.-]+", dependency).group().lower()
@@ -109,6 +118,8 @@ def check(directory, tag=""):
         check_contents(names, "src/")
         for filename in ("pyproject.toml", "README.md", "LICENSE", "AUTHORS", "doc/publishing.md", "tools/check_distribution.py", "tools/check_installed_resources.py"):
             require(filename in names, "Missing source file: " + filename)
+        for figure in FIGURES:
+            require(figure in names, "Missing documentation image: " + figure)
     print("Validated SBOA wheel and source distribution")
 
 

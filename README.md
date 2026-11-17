@@ -3,9 +3,45 @@
 SBOA is the scheduling component of the BOA suite. It schedules recurring
 commands and records their triggerings in PostgreSQL.
 
+## Operation Flow Schematics
+
+### Operations Overview
+
+Scheduling XML becomes an agenda of rules and tasks in PostgreSQL. The scheduler
+daemon selects due tasks, and triggering workers execute their commands. PID
+locks track the daemon and its workers for lifecycle control.
+
+![SBOA operations overview flow](https://raw.githubusercontent.com/Daniel-Brosnan-Blazquez/sboa/main/doc/fig/sboa_operations_overview_flow.svg)
+
+### Configuration Activation
+
+`Engine.insert_configuration()` stops the scheduler, validates the XML and active
+names, and calculates the initial triggering dates. It replaces the stored
+agenda after validation succeeds and can optionally start the daemon again.
+
+![SBOA configuration activation flow](https://raw.githubusercontent.com/Daniel-Brosnan-Blazquez/sboa/main/doc/fig/sboa_configuration_activation_flow.svg)
+
+### Scheduler Polling and Dispatch
+
+Each poll counts unfinished triggerings from the previous 30 minutes and selects
+due tasks within `MAXIMUM_PARALLEL_TASKS`. For each accepted triggering, it saves
+the next task date and calculates the execution window before dispatching a worker.
+
+![SBOA scheduler polling and dispatch flow](https://raw.githubusercontent.com/Daniel-Brosnan-Blazquez/sboa/main/doc/fig/sboa_scheduler_dispatch_flow.svg)
+
+### Triggering Execution
+
+The triggering helper forks a worker, acquires its PID lock, and optionally adds
+the `-b` and `-e` window arguments to the task command. It logs the return code,
+records invocation completion, and releases the lock and database sessions.
+Completion includes nonzero exit codes; execution exceptions leave the triggering
+unfinished and do not undo the next task date already saved by the scheduler.
+
+![SBOA triggering execution flow](https://raw.githubusercontent.com/Daniel-Brosnan-Blazquez/sboa/main/doc/fig/sboa_triggering_execution_flow.svg)
+
 ## Database model
 
-![SBOA database schema](doc/fig/sboadb.png)
+![SBOA database schema](https://raw.githubusercontent.com/Daniel-Brosnan-Blazquez/sboa/main/doc/fig/sboadb.png)
 
 ## Repository structure
 
