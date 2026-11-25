@@ -38,6 +38,9 @@ builds and checks artifacts, installs both the wheel and source distribution,
 and runs these checks on Python 3.9 and 3.11. Database integration tests run in
 the separate `sboa-testing.yml` workflow.
 
+The build matrix uses `ubuntu-24.04` because Python 3.9 builds are unavailable
+for Ubuntu 26.04. Keep the runner pinned while Python 3.9 remains in the matrix.
+
 ## Publish a release
 
 1. Update `[project].version` in `pyproject.toml` for subsequent releases. Each
